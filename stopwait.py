@@ -4,92 +4,72 @@ import random
 
 class StopAndWaitSender:
     def __init__(self, tempo):
-        self.waiting0 = False
-        self.waiting1 = False
-        self.waitingCall = True
-        self.tempo = tempo
-        
-        self.rcvPkt = []        # pacote recebido
-        self.hasRcvPkt = False
+        self.timeout = tempo        # Tempo maximo de espera
+        self.isTimerRunning = False # Se o tempo esta rodando
+        self.temporizador = 0       #  Tempo do Sistema + time out
 
-        self.sndpackage = []    # pacote enviado
+        self.waitingCall = True     # Sinaliza que espera enviar algo de cima
+        self.ack = 0                # Primeiro envio tera seq 0
 
-        self.isTimeRuning = False
+        self.sendPackage = []       # Sem pacotes para serem enviados de inicio
+        self.receivedPackage = []   # Sem pacotes recebidos inicialmente
 
-    def isWaiting0(self):
-        return self.waiting0
-    
-    def isWaiting1(self):
-        return self.waiting1
-    
-    def isWaitingCall(self):
+    def isWaitingCall(self):        # Esta esperando enviar algo?
         return self.waitingCall
+
+    def make_pkt(self, data):
+        self.sendPackage = [self.ack, data, len(data)] # cria pacote ( Ack, Data, CheckSum )
+        return self.sendPackage
     
-    def start_time(self, timerSystem):
-        self.temporizador = timerSystem + self.tempo
-        self.isTimeRuning = True
-    
-    def stop_time(self):
-        self.isTimeRuning = False
+    def has_send(self):
+        return (len(self.sendPackage) > 0)              # retorna verdadeiro se tem pacote a ser enviado
 
-    def make_pkt(self, ack, data, checksum):
-        self.sndpackage = [ack, data, checksum]
+    def get_send(self):
+        return self.sendPackage
 
-    def getSndPackage(self):
-        return self.sndpackage
+    def send_package(self):
+        self.waitingCall = False                            # Muda o estado para Wait Ack 0/1
+        print("Sender: Sending Package ", self.sendPackage) 
+        print("Sender: Now is waiting for Ack ", self.ack, "\n")
 
-    def sendPackage(self, package):
-        self.rcvPkt = []
-        self.hasRcvPkt = False
+        self.receivedPackage = []   # reseta pacotes recebidos
 
-        if package[0] == 0:
-            self.waiting0 = True
-        else:
-            self.waiting1 = True
-        
-        self.waitingCall = False
+    def receive_package(self, package):
+        self.receivedPackage = package  # salva pacote recebido
 
-        print("Sender: Sending Package " , package, "\n")
+        if(package[0] == self.ack):     # se recebeu o Ack aguardado
+            print("Sender: received ACK ", package[0])
 
-    def receiverPackage(self, package):
-        self.rcvPkt = package
-        self.hasRcvPkt = True
-        
-        if self.rcvPkt[1] != self.sndpackage[2]:
-            print("Sender: Receive Package Corrupt ", self.rcvPkt, )
-
-        else:
-            if self.rcvPkt[0] == 0 and self.waiting0:
-                self.waiting0 = False
-                self.waitingCall = True
-                self.isTimeRuning = False
-                print("Sender: Received Package " , package, "\n")
-            elif self.rcvPkt[0] == 1 and self.waiting1:
-                self.waiting1 = False
-                self.waitingCall = True
-                self.isTimeRuning = False
-                print("Sender: Received Package " , package, "\n")
+            if self.ack == 0:
+                self.ack = 1
             else:
-                print("Sender: Received Duplicated Package " , package, "\n")
-            
+                self.ack = 0
 
-    def hasReceivedPackage(self):
-        return self.hasRcvPkt
+        else:                           # se recebeu um Nak
+            print("Sender: receveid Duplicated Package ", package, "\n")
+    
+    def has_received(self):
+        return (len(self.receivedPackage) > 0)          # retorna verdadeiro se tem pacote recebido
     
     def isNak(self):
-        if self.waiting0 and self.rcvPkt[0] == 0:
-            return False
-        elif self.waiting1 and self.rcvPkt[0] == 1:
-            return False
-        else:
-            return True
+        return ( self.sendPackage[0] != self.receivedPackage[0] )
+    
+    def isCorrupt(self):
+        return ( self.sendPackage[2] != self.receivedPackage[1] )
 
-    def isCorrupted(self):
-        return self.rcvPkt[1] != self.sndpackage[2]
+    def setWaitingCall(self, value):
+        self.waitingCall = value
+    
+    def start_time(self, timerSystem):
+        self.temporizador = timerSystem + self.timeout
+        self.isTimerRunning = True
+
+    def stop_time(self):
+        self.isTimerRunning = False
 
     def isTimeOut(self, timerSystem):
-        if self.temporizador < timerSystem and self.isTimeRuning:
-            print("Sender: Time Out Package ", self.sndpackage)
+        if (self.isTimerRunning and self.temporizador < timerSystem):
+            print ("Sender: Time Out for package", self.sendPackage, "\n")
             return True
         else:
             return False
@@ -97,99 +77,85 @@ class StopAndWaitSender:
 
 class StopAndWaitReceiver:
     def __init__(self):
-        self.waiting0 = True
-        self.waiting1 = False
-        self.waitingCall = False
-        self.dataResult = ""
+        self.waitingCall = False     # Sinaliza que espera enviar algo de cima
+        self.seq = 0                # Primeiro envio tera ack 0
 
-        self.rcvPkt = []
-        self.hasRcvPkt = False
+        self.sendPackage = []       # Sem pacotes para serem enviados de inicio
+        self.receivedPackage = []   # Sem pacotes recebidos inicialmente
 
-    def isWaiting0(self):
-        return self.waiting0
-    
-    def isWaiting1(self):
-        return self.waiting1
-    
-    def isWaitingCall(self):
+        self.dataResult = ""        # Data Result apos o envio de todos os pacotes
+        self.lastDuplicate = False
+
+    def isWaitingCall(self):        # Esta esperando enviar algo?
         return self.waitingCall
 
-    def make_pkt(self, ack, checksum):
-        self.sndpackage = [ack, checksum]
-
-    def getSndPackage(self):
-        return self.sndpackage
-
-    def sendPackage(self, package):
-        self.rcvPkt = []
-        self.hasRcvPkt = False
-
-        if package[0] == 0:
-            self.waiting1 = True
-        else:
-            self.waiting0 = True
-        
-        self.waitingCall = False
-        print("Receiver: Sending Package " , package, "\n")
-
-    def receiverPackage(self, package):        
-        self.rcvPkt = package
-        self.hasRcvPkt = True
-
-        if self.rcvPkt[0] == 0 and self.waiting0:
-            self.waiting0 = False
-            self.waitingCall = True
-            self.dataResult = self.dataResult + self.rcvPkt[1]
-            
-            print("Receiver: Received Package " , package, "\n")
-        elif self.rcvPkt[0] == 1 and self.waiting1:
-            self.waiting1 = False
-            self.waitingCall = True
-            self.dataResult = self.dataResult + self.rcvPkt[1]
-        
-            print("Receiver: Received Package " , package, "\n")
-        else:
-            self.sendPackage(self.rcvPkt)
-            print("Receiver: Received Duplicated Package " , package, "\n")
-
-    def hasReceivedPackage(self):
-        return self.hasRcvPkt
+    def make_pkt(self):
+        self.sendPackage = [self.seq, len(self.receivedPackage[1])] # cria pacote ( Ack, Data, CheckSum )
+        return self.sendPackage
     
-    def hasSeq(self):
-        if len(self.rcvPkt) == 0:
-            return True
+    def has_send(self):
+        return (len(self.sendPackage) > 0)              # retorna verdadeiro se tem pacote a ser enviado
 
-        if self.waiting0 and self.rcvPkt[0] == 0:
-            return False
-        elif self.waiting1 and self.rcvPkt[0] == 1:
-            return False
-        else:
-            return True
+    def get_send(self):
+        return self.sendPackage
+
+    def send_package(self):
+        self.waitingCall = False                            # Muda o estado para Wait Ack 0/1
+        print("Receiver: Sending Package ", self.sendPackage)
+
+        if not self.lastDuplicate:
+            if self.seq == 0:
+                self.seq = 1
+            else:
+                self.seq = 0
+
+        print("Receiver: Now is waiting for Seq ", self.seq, "\n")
+
+        self.receivedPackage = []   # reseta pacotes recebidos
+
+    def receive_package(self, package):
+        self.receivedPackage = package  # salva pacote recebido
+
+        if(package[0] == self.seq):     # se recebeu o Ack aguardado
+            self.dataResult = self.dataResult + package[1]
+            print("Receiver: received package ", package, "\n")
+            self.lastDuplicate = False
+        else:                           # se recebeu um Nak
+            print("Receiver: receveid Duplicated Package ", package, "\n")
+            self.lastDuplicate = True
     
-    def getRcvPkt(self):
-        return self.rcvPkt
+    def has_received(self):
+        return (len(self.receivedPackage) > 0)          # retorna verdadeiro se tem pacote recebido
+    
+    def isSeq(self):
+        return ( self.seq == self.receivedPackage[0] )
+    
+    def setWaitingCall(self, value):
+        self.waitingCall = value
+    # def isCorrupt(self):
+    #     return ( self.sendPackage[2] == self.receivedPackage[1] )
 
-    def printData(self):
-        print("Data: " , self.dataResult)
+    def print_dataResult(self):
+        print("Data Result: ", self.dataResult)
+        
 
 class Canal:
     def __init__(self):
         self.lista_pacotes = []
 
     def udt_send(self, package, sender, receiver, timeSystem):
-        self.tempo_chegada = random.randint(2,4)
-        sender.sendPackage(package)
-        self.lista_pacotes.append([package, receiver, timeSystem+self.tempo_chegada])
+        sender.send_package()
+        self.lista_pacotes.append([package, receiver, timeSystem+2])
     
     def rdt_rcv(self, package, receiver):        
-        receiver.receiverPackage(package)
+        receiver.receive_package(package)
 
     def encaminhando(self, timeSystem):
         i = 0
         while i != len(self.lista_pacotes):
             if self.lista_pacotes[i][2] < timeSystem:
-                self.probabilidade_perda = random.randint(0,4)
-                if self.probabilidade_perda != 3:
+                self.probabilidade_perda = random.randint(0,100)
+                if self.probabilidade_perda < 50:
                     self.rdt_rcv(self.lista_pacotes[i][0], self.lista_pacotes[i][1])
 
                 self.lista_pacotes.pop(i)
@@ -216,52 +182,54 @@ def main():
     #####################################
 
     ## PROTOCOLOS ##
-    sender = StopAndWaitSender(8)
+    sender = StopAndWaitSender(5)
     receiver = StopAndWaitReceiver()
     canal = Canal()
-
-    Ack = 0
     #####################################
 
     #### MAIN LOOP ####
-    while len(lista_dados) > 0 or not sender.isWaitingCall():
+    while len(lista_dados) > 0 or not sender.isWaitingCall() or canal.hasEncaminhamento():
         startTime = time.time() # TIMER
 
         if sender.isWaitingCall():
             if len(lista_dados) > 0:
-                sender.make_pkt(Ack, lista_dados.pop(0), 8)
-                canal.udt_send(sender.getSndPackage(), sender, receiver, startTime)
+                package = sender.make_pkt(lista_dados.pop(0))
+                canal.udt_send(package, sender, receiver, startTime)
                 sender.start_time(startTime)
 
-                if Ack == 0:
-                    Ack = 1
+        else:
+            if sender.has_received():
+                sender.stop_time()
+                if not sender.isNak() and not sender.isCorrupt():
+                    sender.setWaitingCall(True)
                 else:
-                    Ack = 0
-        else:
-            if sender.hasReceivedPackage():
-                if sender.isCorrupted() or sender.isNak():
-                    canal.udt_send(sender.getSndPackage(), sender, receiver, startTime)
+                    package = sender.get_send()
+                    canal.udt_send(package, sender, receiver, startTime)
                     sender.start_time(startTime)
-            elif sender.isTimeOut(startTime):
-                canal.udt_send(sender.getSndPackage(), sender, receiver, startTime)
-                sender.start_time(startTime)
-
+            else:
+                if sender.isTimeOut(startTime):
+                    package = sender.get_send()
+                    canal.udt_send(package, sender, receiver, startTime)
+                    sender.start_time(startTime)
+            
         if receiver.isWaitingCall():
-            if receiver.hasReceivedPackage():
-                if receiver.hasSeq():
-                    receiver.make_pkt(receiver.getRcvPkt()[0], receiver.getRcvPkt()[2])
-                    canal.udt_send(receiver.getSndPackage(), receiver, sender, startTime)
+            if receiver.has_received():
+                package = receiver.make_pkt()
+                canal.udt_send(package, receiver, sender, startTime)
 
         else:
-            if receiver.hasReceivedPackage():
-                if not receiver.hasSeq():
-                    canal.udt_send(receiver.getSndPackage(), receiver, sender, startTime)
-
+            if receiver.has_received():
+                if receiver.isSeq():
+                    receiver.setWaitingCall(True)
+                else:
+                    package = receiver.get_send()
+                    canal.udt_send(package, receiver, sender, startTime)
 
         canal.encaminhando(startTime)
         ####### PROTOCOL LOGIC ############
-        
-    receiver.printData()
+    
+    receiver.print_dataResult()
+    # receiver.printData()
     ######################################
 
 main()
