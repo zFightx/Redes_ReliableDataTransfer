@@ -2,6 +2,10 @@ import tkinter as tk
 
 class Interface:
     def __init__(self, nome, largura, altura):
+        #------ Atributos
+        ## um dicionário para guardar as configurações (auto-explicativo)
+        self.configuracoes = dict()
+        
         #------ constantes para controlar o layout dos botões ------
         # button_width = 6
         self.button_padx = "2m"
@@ -45,7 +49,7 @@ class Interface:
         # Frames
         # middleContainter Frames
         self.leftMiddleFrame_middleContainer = tk.Frame(self.middleContainer, width=30, height=60)
-        self.leftMiddleFrame_middleContainer.pack(side= tk.LEFT, expand=tk.YES, fill=tk.BOTH,
+        self.leftMiddleFrame_middleContainer.pack(side= tk.LEFT, anchor=tk.CENTER, expand=tk.YES,
             padx= self.button_padx, pady= self.button_pady, ipady=self.buttons_frame_ipady,
             ipadx=self.buttons_frame_ipadx)
 
@@ -56,18 +60,21 @@ class Interface:
         # Widgets
         ## topContainer
         self.labelTitle_topContainer = tk.Label(self.topContainer, text="UnB - Simulador de protocolos de transporte", fg="blue", font=("Arial", 16, "bold"))
-        self.labelTitle_topContainer.pack(side=tk.LEFT, anchor=tk.NW)
+        self.labelTitle_topContainer.pack(side=tk.TOP, anchor=tk.CENTER, pady=(10,0))
         
         ## middleContainer
         ### leftMiddleFrame_middleContainer - Botões
+        self.labelBotoes_leftMiddleFrame = tk.Label(self.leftMiddleFrame_middleContainer, text="Configurações:")
+        self.labelBotoes_leftMiddleFrame.pack(expand=tk.YES)
+
         self.buttonCanal = tk.Button(self.leftMiddleFrame_middleContainer, text="Canal", width=15, command=self.__opcoesCanal)
-        self.buttonCanal.pack(side=tk.TOP, pady=(220,10))
+        self.buttonCanal.pack(expand=tk.YES, pady=(0,5))
 
         self.buttonEmissor = tk.Button(self.leftMiddleFrame_middleContainer, text="Emissor", width=15, command=lambda: self.__opcoesEmissorReceptor(0))
-        self.buttonEmissor.pack(side=tk.TOP, pady=(0,10))
+        self.buttonEmissor.pack(expand=tk.YES, pady=(0,5))
 
         self.buttonReceptor = tk.Button(self.leftMiddleFrame_middleContainer, text="Receptor", width=15, command=lambda: self.__opcoesEmissorReceptor(1))
-        self.buttonReceptor.pack(side=tk.TOP, pady=(0,10))
+        self.buttonReceptor.pack(expand=tk.YES, pady=(0,5))
 
         ### rightMiddleFrame_middleContainer - Text saída terminal
         self.sb = tk.Scrollbar(self.rightMiddleFrame_middleContainer)
@@ -81,8 +88,9 @@ class Interface:
         self.sb.config(command=self.textTerminal.yview)
 
         ### bottomContainer
-        self.labelStatusBar = tk.Label(self.bottomContainer, text="Testando barra de status", fg="red")
-        self.labelStatusBar.pack(side=tk.LEFT, expand=tk.YES, anchor=tk.W)
+        self.labelStatusBar = tk.Label(self.bottomContainer, text="", fg="red")
+        self.labelStatusBar.pack(side=tk.LEFT, expand=tk.YES, anchor=tk.W, padx=(20,0))
+        self.printarBarraStatus("Testando print Barra de Status")
 
 
     def __opcoesCanal(self):
@@ -107,19 +115,19 @@ class Interface:
 
         # Frames internos
         ## canal Distancia
-        labelDistancia = tk.Label(mainContainer, text="Insira a distância do canal:")
+        labelDistancia = tk.Label(mainContainer, text="Insira a distância do canal (Km):")
         labelDistancia.pack(side=tk.TOP)
         entryDistancia = tk.Entry(mainContainer, width=60, textvariable=self.canalDistancia)
         entryDistancia.pack(side=tk.TOP)
 
         ## canal Probabilidade de Erro
-        labelProbErro = tk.Label(mainContainer, text="Insira a probabilidade de erro do canal:")
+        labelProbErro = tk.Label(mainContainer, text="Insira a probabilidade de erro do canal (porcentagem):")
         labelProbErro.pack(side=tk.TOP)
         entryProbErro = tk.Entry(mainContainer, width=60, textvariable=self.canalProbErro)
         entryProbErro.pack(side=tk.TOP)
         
         ## canal Vazao
-        labelVazao = tk.Label(mainContainer, text="Insira a vazão do canal:")
+        labelVazao = tk.Label(mainContainer, text="Insira a vazão do canal (bytes):")
         labelVazao.pack(side=tk.TOP)
         entryVazao = tk.Entry(mainContainer, width=60, textvariable=self.canalVazao)
         entryVazao.pack(side=tk.TOP)
@@ -154,13 +162,13 @@ class Interface:
 
         # Frames internos
         ## emissor/receptor tamanho
-        labelTamanho = tk.Label(mainContainer, text="Insira o tamanho da janela:")
+        labelTamanho = tk.Label(mainContainer, text="Insira o tamanho da janela (bytes):")
         labelTamanho.pack(side=tk.TOP)
         entryTamanho = tk.Entry(mainContainer, width=60, textvariable=self.tamanhoJanelaEmissorReceptor)
         entryTamanho.pack(side=tk.TOP)
         
         ## emissor/receptor Cálculo TimeOut
-        labelTimeOut = tk.Label(mainContainer, text="Cálculo do TimeOut:")
+        labelTimeOut = tk.Label(mainContainer, text="Cálculo do TimeOut (ms):")
         labelTimeOut.pack(side=tk.TOP)
         entryTimeOut = tk.Entry(mainContainer, width=60, textvariable=self.timeOutEmissorReceptor)
         entryTimeOut.pack(side=tk.TOP)
@@ -174,10 +182,7 @@ class Interface:
         buttonDistancia.pack(side=tk.TOP, pady=(20,0))
 
 
-    def salvarConfig(self, opt):
-        # um dicionário para guardar as configurações (auto-explicativo)
-        self.configuracoes = dict()
-        
+    def salvarConfig(self, opt):        
         if opt == 0:
             self.configuracoes['canalDistancia'] = self.canalDistancia.get()
             self.configuracoes['canalProbErro'] = self.canalProbErro.get()
@@ -203,3 +208,6 @@ class Interface:
         self.textTerminal.delete("1.0", tk.END)         # limpando console
         self.textTerminal.insert(tk.END, text)          # escrevendo
         self.textTerminal.config(state=tk.DISABLED)     # desabilitando escrita
+
+    def printarBarraStatus(self, text):
+        self.labelStatusBar.config(text=text)
