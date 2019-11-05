@@ -4,7 +4,7 @@ class Interface:
     def __init__(self, nome, largura, altura):
         #------ Atributos
         ## um dicionário para guardar as configurações (auto-explicativo)
-        self.configuracoes = dict()
+        self.__configuracoes = dict()
         
         #------ constantes para controlar o layout dos botões ------
         # button_width = 6
@@ -184,15 +184,15 @@ class Interface:
 
     def salvarConfig(self, opt):        
         if opt == 0:
-            self.configuracoes['canalDistancia'] = self.canalDistancia.get()
-            self.configuracoes['canalProbErro'] = self.canalProbErro.get()
-            self.configuracoes['canalVazao'] = self.canalVazao.get()
+            self.__configuracoes['canalDistancia'] = self.canalDistancia.get()
+            self.__configuracoes['canalProbErro'] = self.canalProbErro.get()
+            self.__configuracoes['canalVazao'] = self.canalVazao.get()
         elif opt == 1:
-            self.configuracoes['emissorTamanhoJanela'] = self.tamanhoJanelaEmissorReceptor.get()
-            self.configuracoes['emissorTimeOut'] = self.timeOutEmissorReceptor.get()
+            self.__configuracoes['emissorTamanhoJanela'] = self.tamanhoJanelaEmissorReceptor.get()
+            self.__configuracoes['emissorTimeOut'] = self.timeOutEmissorReceptor.get()
         elif opt == 2:
-            self.configuracoes['receptorTamanhoJanela'] = self.tamanhoJanelaEmissorReceptor.get()
-            self.configuracoes['receptorTimeOut'] = self.timeOutEmissorReceptor.get()
+            self.__configuracoes['receptorTamanhoJanela'] = self.tamanhoJanelaEmissorReceptor.get()
+            self.__configuracoes['receptorTimeOut'] = self.timeOutEmissorReceptor.get()
 
         # mostrando no console
         self.printarConsole(str(self.configuracoes))
@@ -211,3 +211,8 @@ class Interface:
 
     def printarBarraStatus(self, text):
         self.labelStatusBar.config(text=text)
+
+
+    @property
+    def configuracoes(self):
+        return self.__configuracoes
