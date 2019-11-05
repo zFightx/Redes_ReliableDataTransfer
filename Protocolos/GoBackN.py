@@ -58,9 +58,11 @@ class GoBackNSender:
             self.base = self.base + 1
         else:
             if package[0] < self.base:
-                print("Sender: received Duplicated Package ", package)
+                print("Sender: received Duplicated Package (ignored)", package)
             else:
-                print("Sender: received a discarted package ", package)
+                print("Sender: received ACK ", package[0])
+                print("Sender: ACKs [", self.base, ", .., ", package[0] ,"] confirmed with based in confirmation ack ", package[0])
+                self.base = package[0]
 
     def has_receive(self):
         return (len(self.rcvPackage) > 0)
@@ -78,6 +80,9 @@ class GoBackNSender:
             return True
         else:
             return False
+
+    def notFinish(self):
+        return self.base < len(self.janela)
 
 class GoBackNReceiver:
     def __init__(self):
@@ -179,7 +184,7 @@ def main():
     #####################################
 
     #### MAIN LOOP ####
-    while receiver.get_dataResult() != dados2:
+    while receiver.get_dataResult() != dados2 or canal.hasEncaminhamento() or sender.has_data() or sender.notFinish():
         startTime = time.time() # TIMER
 
         if sender.has_send():
@@ -217,7 +222,11 @@ def main():
                     canal.udt_send(sndpkt, receiver,sender, startTime)
                     receiver.set_expectedseq(receiver.get_expectedseq()+1)
                 else:
+                    # if(i[0] < receiver.get_expectedseq()):
+                    #     sndpkt = [i[0], len(i[1])]
+                    # else:
                     sndpkt = receiver.get_send()
+
                     canal.udt_send(sndpkt, receiver,sender, startTime)
 
         canal.encaminhando(startTime)

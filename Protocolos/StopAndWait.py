@@ -26,9 +26,9 @@ class StopAndWaitSender:
     def get_send(self):
         return self.sendPackage
 
-    def send_package(self):
+    def send_package(self, package):
         self.waitingCall = False                            # Muda o estado para Wait Ack 0/1
-        print("Sender: Sending Package ", self.sendPackage) 
+        print("Sender: Sending Package ", package) 
         print("Sender: Now is waiting for Ack ", self.ack, "\n")
 
         self.receivedPackage = []   # reseta pacotes recebidos
@@ -98,9 +98,9 @@ class StopAndWaitReceiver:
     def get_send(self):
         return self.sendPackage
 
-    def send_package(self):
+    def send_package(self, package):
         self.waitingCall = False                            # Muda o estado para Wait Ack 0/1
-        print("Receiver: Sending Package ", self.sendPackage)
+        print("Receiver: Sending Package ", package)
 
         if not self.lastDuplicate:
             if self.seq == 0:
@@ -143,7 +143,7 @@ class Canal:
         self.lista_pacotes = []
 
     def udt_send(self, package, sender, receiver, timeSystem):
-        sender.send_package()
+        sender.send_package(package)
         self.lista_pacotes.append([package, receiver, timeSystem+2])
     
     def rdt_rcv(self, package, receiver):        
