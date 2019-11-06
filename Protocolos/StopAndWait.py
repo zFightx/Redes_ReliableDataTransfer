@@ -2,7 +2,8 @@ import time
 import random
 
 class StopAndWaitSender:
-    def __init__(self, tempo):
+    def __init__(self, tempo, func):
+        self.func = func            # Printar Console Interface
         self.timeout = tempo        # Tempo maximo de espera
         self.isTimerRunning = False # Se o tempo esta rodando
         self.temporizador = 0       #  Tempo do Sistema + time out
@@ -28,8 +29,8 @@ class StopAndWaitSender:
 
     def send_package(self, package):
         self.waitingCall = False                            # Muda o estado para Wait Ack 0/1
-        print("Sender: Sending Package ", package) 
-        print("Sender: Now is waiting for Ack ", self.ack, "\n")
+        self.func("Sender: Sending Package {0}\n".format(package)) 
+        self.func("Sender: Now is waiting for Ack {0}\n".format(self.ack))
 
         self.receivedPackage = []   # reseta pacotes recebidos
 
@@ -37,7 +38,7 @@ class StopAndWaitSender:
         self.receivedPackage = package  # salva pacote recebido
 
         if(package[0] == self.ack):     # se recebeu o Ack aguardado
-            print("Sender: received ACK ", package[0])
+            self.func("Sender: received ACK {0}\n".format(package[0]))
 
             if self.ack == 0:
                 self.ack = 1
@@ -45,7 +46,7 @@ class StopAndWaitSender:
                 self.ack = 0
 
         else:                           # se recebeu um Nak
-            print("Sender: receveid Duplicated Package ", package, "\n")
+            self.func("Sender: receveid Duplicated Package {0}\n".format(package))
     
     def has_received(self):
         return (len(self.receivedPackage) > 0)          # retorna verdadeiro se tem pacote recebido
@@ -68,14 +69,15 @@ class StopAndWaitSender:
 
     def isTimeOut(self, timerSystem):
         if (self.isTimerRunning and self.temporizador < timerSystem):
-            print ("Sender: Time Out for package", self.sendPackage, "\n")
+            self.func ("Sender: Time Out for package {0}\n".format(self.sendPackage))
             return True
         else:
             return False
 
 
 class StopAndWaitReceiver:
-    def __init__(self):
+    def __init__(self, func):
+        self.func = func
         self.waitingCall = False     # Sinaliza que espera enviar algo de cima
         self.seq = 0                # Primeiro envio tera ack 0
 
@@ -100,7 +102,7 @@ class StopAndWaitReceiver:
 
     def send_package(self, package):
         self.waitingCall = False                            # Muda o estado para Wait Ack 0/1
-        print("Receiver: Sending Package ", package)
+        self.func("Receiver: Sending Package {0}\n".format(package))
 
         if not self.lastDuplicate:
             if self.seq == 0:
@@ -108,7 +110,7 @@ class StopAndWaitReceiver:
             else:
                 self.seq = 0
 
-        print("Receiver: Now is waiting for Seq ", self.seq, "\n")
+        self.func("Receiver: Now is waiting for Seq {0}\n".format(self.seq))
 
         self.receivedPackage = []   # reseta pacotes recebidos
 
@@ -117,10 +119,10 @@ class StopAndWaitReceiver:
 
         if(package[0] == self.seq):     # se recebeu o Ack aguardado
             self.dataResult = self.dataResult + package[1]
-            print("Receiver: received package ", package, "\n")
+            self.func("Receiver: received package {0}\n".format(package))
             self.lastDuplicate = False
         else:                           # se recebeu um Nak
-            print("Receiver: receveid Duplicated Package ", package, "\n")
+            self.func("Receiver: receveid Duplicated Package {0}\n".format(package))
             self.lastDuplicate = True
     
     def has_received(self):
@@ -135,16 +137,18 @@ class StopAndWaitReceiver:
     #     return ( self.sendPackage[2] == self.receivedPackage[1] )
 
     def print_dataResult(self):
-        print("Data Result: ", self.dataResult)
+        self.func("Data Result: {0}\n".format(self.dataResult))
         
 
 class Canal:
-    def __init__(self):
+    def __init__(self, timeTransfer, probabilidadeError):
         self.lista_pacotes = []
+        self.timeTransfer = timeTransfer
+        self.probabilidadeError = probabilidadeError
 
     def udt_send(self, package, sender, receiver, timeSystem):
         sender.send_package(package)
-        self.lista_pacotes.append([package, receiver, timeSystem+2])
+        self.lista_pacotes.append([package, receiver, timeSystem + self.timeTransfer])
     
     def rdt_rcv(self, package, receiver):        
         receiver.receive_package(package)
@@ -154,7 +158,7 @@ class Canal:
         while i != len(self.lista_pacotes):
             if self.lista_pacotes[i][2] < timeSystem:
                 self.probabilidade_perda = random.randint(0,100)
-                if self.probabilidade_perda < 50:
+                if self.probabilidade_perda < 100 - self.probabilidadeError:
                     self.rdt_rcv(self.lista_pacotes[i][0], self.lista_pacotes[i][1])
 
                 self.lista_pacotes.pop(i)
@@ -165,11 +169,15 @@ class Canal:
     def hasEncaminhamento(self):
         return len(self.lista_pacotes) > 0
 
-def main():
-    print("Redes de Computadores - UnB")
+def StartStopAndWait(dados, canalDistancia, canalVazao, probabilidadeError, func, refresh):
+    # func -> printar no Console
+    # refresh -> atualizar interface
+    func("Redes de Computadores - UnB\n")
+
+    timeout = (canalDistancia*1000/(2.1*10**7) + 8/canalVazao) * 2 + 0.05
+    timeTransfer = canalDistancia*1000/(2.1*10**7)
 
     ## DADOS QUE QUEREMOS ENVIAR ##
-    dados = "Eduardo e Monica e Alexandre estavam numa festa"
     lista_dados = []
     while len(dados) > 0:
         if len(dados) >= 8:
@@ -181,9 +189,9 @@ def main():
     #####################################
 
     ## PROTOCOLOS ##
-    sender = StopAndWaitSender(5)
-    receiver = StopAndWaitReceiver()
-    canal = Canal()
+    sender = StopAndWaitSender(timeout, func)
+    receiver = StopAndWaitReceiver(func)
+    canal = Canal(timeTransfer, probabilidadeError)
     #####################################
 
     #### MAIN LOOP ####
@@ -225,10 +233,9 @@ def main():
                     canal.udt_send(package, receiver, sender, startTime)
 
         canal.encaminhando(startTime)
+        refresh()
         ####### PROTOCOL LOGIC ############
-    
+
     receiver.print_dataResult()
     # receiver.printData()
     ######################################
-
-main()

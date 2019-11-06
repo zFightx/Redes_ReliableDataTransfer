@@ -1,12 +1,14 @@
 import tkinter as tk
-import Protocolos
+import Protocolos.GoBackN as GoBackN
+import Protocolos.StopAndWait as StopAndWait
 
 class Interface:
     def __init__(self, nome, largura, altura):
         #------ Atributos
         ## um dicionário para guardar as configurações (auto-explicativo)
         self.__configuracoes = dict()
-        
+        self.inputDados = ""
+
         #------ constantes para controlar o layout dos botões ------
         # button_width = 6
         self.button_padx = "2m"
@@ -60,9 +62,37 @@ class Interface:
 
         # Widgets
         ## topContainer
-        self.labelTitle_topContainer = tk.Label(self.topContainer, text="UnB - Simulador de protocolos de transporte", fg="blue", font=("Arial", 16, "bold"))
-        self.labelTitle_topContainer.pack(side=tk.TOP, anchor=tk.CENTER, pady=(10,0))
+        self.entryInputDados = tk.StringVar()
+
+        self.titleContainer_topContainer = tk.Frame(self.topContainer)
+        self.titleContainer_topContainer.pack()
+
+        self.labelTitle_titleContainer = tk.Label(self.titleContainer_topContainer, text="UnB - Reliable Data Transfer Simulator", fg="blue", font=("Arial", 16, "bold"))
+        self.labelTitle_titleContainer.grid(row=0, column=1, padx=20, pady=(10,0))
         
+        ## Imagem titulo
+        self.imageLeftTitle = tk.PhotoImage(file="UI/images/network64.png")
+        self.imageLeftTitle.zoom(8)        # multiplies for 64
+        self.imageLeftTitle.subsample(157)  # divison for 157 (original size 157px)
+        self.labelLeftTitle = tk.Label(self.titleContainer_topContainer, image=self.imageLeftTitle)
+        self.labelLeftTitle.grid(row=0, column=0)
+
+        self.imageRightTitle = tk.PhotoImage(file="UI/images/network64.png")
+        self.imageRightTitle.zoom(8)        # multiplies for 64
+        self.imageRightTitle.subsample(157)  # divison for 157 (original size 157px)
+        self.labelRightTitle = tk.Label(self.titleContainer_topContainer, image=self.imageRightTitle)
+        self.labelRightTitle.grid(row=0, column=2)
+
+
+
+        self.frameDados_topContainer = tk.Frame(self.topContainer)
+        self.frameDados_topContainer.pack(side=tk.BOTTOM, pady=(20,0))
+
+        self.labelDados_topContainer = tk.Label(self.frameDados_topContainer, text="String de Dados:")
+        self.labelDados_topContainer.pack(side=tk.LEFT, padx=(0,10))
+        self.entryDados_topContainer = tk.Entry(self.frameDados_topContainer, width=60, textvariable=self.entryInputDados)
+        self.entryDados_topContainer.pack(side=tk.LEFT)
+
         ## middleContainer
         ### leftMiddleFrame_middleContainer - Botões
         # self.optionMenu = tk.IntVar()
@@ -76,16 +106,16 @@ class Interface:
         self.menuButton_leftMiddleFrame["menu"] = self.menuButton_leftMiddleFrame.menu
         self.menuButton_leftMiddleFrame.menu.add_command(label="Stop-and-Wait", command= lambda: self.__opcoesProtocolos(0))
         self.menuButton_leftMiddleFrame.menu.add_command(label="Go-Back-N", command= lambda: self.__opcoesProtocolos(1))
-        self.menuButton_leftMiddleFrame.menu.add_command(label="Selective-Repeat", command= lambda: self.__opcoesProtocolos(2))
+        #self.menuButton_leftMiddleFrame.menu.add_command(label="Selective-Repeat", command= lambda: self.__opcoesProtocolos(2))
 
         self.buttonCanal = tk.Button(self.leftMiddleFrame_middleContainer, text="Canal", width=15, command=self.__opcoesCanal)
         self.buttonCanal.pack(expand=tk.YES, pady=(0,5))
 
-        self.buttonEmissor = tk.Button(self.leftMiddleFrame_middleContainer, text="Emissor", width=15, command=lambda: self.__opcoesEmissorReceptor(0))
+        self.buttonEmissor = tk.Button(self.leftMiddleFrame_middleContainer, text="Emissor/Receptor", width=15, command=lambda: self.__opcoesEmissorReceptor(0))
         self.buttonEmissor.pack(expand=tk.YES, pady=(0,5))
 
-        self.buttonReceptor = tk.Button(self.leftMiddleFrame_middleContainer, text="Receptor", width=15, command=lambda: self.__opcoesEmissorReceptor(1))
-        self.buttonReceptor.pack(expand=tk.YES, pady=(0,5))
+        #self.buttonReceptor = tk.Button(self.leftMiddleFrame_middleContainer, text="Receptor", width=15, command=lambda: self.__opcoesEmissorReceptor(1))
+        #self.buttonReceptor.pack(expand=tk.YES, pady=(0,5))
 
         self.buttonReceptor = tk.Button(self.leftMiddleFrame_middleContainer, text="Iniciar simulação", width=20, height=2, activebackground="gray", font=("bold"), command=self.__iniciarSimulacao)
         self.buttonReceptor.pack(expand=tk.YES, pady=(20,0))
@@ -111,8 +141,25 @@ class Interface:
 
     def __iniciarSimulacao(self):
         """ Executa o simulador com as configurações definidas."""
-        pass
 
+        self.inputDados = self.entryInputDados.get()
+        self.limparConsole()
+
+        tamanhoJanela = int(self.configuracoes.get('emissorTamanhoJanela', 2))
+        canalDistancia = int(self.configuracoes.get('canalDistancia', 2000))
+        canalVazao = int(self.configuracoes.get('canalVazao', 10000))
+        canalProbErro = int(self.configuracoes.get('canalProbErro', 20))    
+        for key in self.__configuracoes:
+            if key == 'protocolo':
+                if self.__configuracoes[key] == 0:      # StopandWait
+                    self.printarBarraStatus("Executando protocolo Stop-and-Wait!")
+                    StopAndWait.StartStopAndWait(self.inputDados, canalDistancia, canalVazao, canalProbErro, self.printarConsole, self.root.update)
+                    break
+                elif self.__configuracoes[key] == 1:      # GoBackN
+                    self.printarBarraStatus("Executando protocolo Go-Back-N!")
+                    GoBackN.StartGoBackN(self.inputDados, tamanhoJanela, canalDistancia, canalVazao, canalProbErro, self.printarConsole, self.root.update)
+                    break
+                    
 
     def __opcoesProtocolos(self, opt):
         # 0 - Stop-and-Wait
@@ -157,7 +204,7 @@ class Interface:
         entryProbErro.pack(side=tk.TOP)
         
         ## canal Vazao
-        labelVazao = tk.Label(mainContainer, text="Insira a vazão do canal (bytes):")
+        labelVazao = tk.Label(mainContainer, text="Insira a vazão do canal (bytes/s):")
         labelVazao.pack(side=tk.TOP)
         entryVazao = tk.Entry(mainContainer, width=60, textvariable=self.canalVazao)
         entryVazao.pack(side=tk.TOP)
@@ -179,11 +226,11 @@ class Interface:
             if self.newWindow.state() == "normal":
                 self.newWindow.destroy()
                 self.newWindow = tk.Toplevel(self.root)
-                self.newWindow.minsize(500, 160)
+                self.newWindow.minsize(500, 120)
                 self.newWindow.focus()
         except:
             self.newWindow = tk.Toplevel(self.root)
-            self.newWindow.minsize(500, 160)
+            self.newWindow.minsize(500, 120)
             self.newWindow.focus()
 
         # Container
@@ -192,16 +239,16 @@ class Interface:
 
         # Frames internos
         ## emissor/receptor tamanho
-        labelTamanho = tk.Label(mainContainer, text="Insira o tamanho da janela (bytes):")
+        labelTamanho = tk.Label(mainContainer, text="Insira o tamanho da janela (quantidade de pacotes):")
         labelTamanho.pack(side=tk.TOP)
         entryTamanho = tk.Entry(mainContainer, width=60, textvariable=self.tamanhoJanelaEmissorReceptor)
         entryTamanho.pack(side=tk.TOP)
         
         ## emissor/receptor Cálculo TimeOut
-        labelTimeOut = tk.Label(mainContainer, text="Cálculo do TimeOut (ms):")
-        labelTimeOut.pack(side=tk.TOP)
-        entryTimeOut = tk.Entry(mainContainer, width=60, textvariable=self.timeOutEmissorReceptor)
-        entryTimeOut.pack(side=tk.TOP)
+        #labelTimeOut = tk.Label(mainContainer, text="Cálculo do TimeOut (ms):")
+        #labelTimeOut.pack(side=tk.TOP)
+        #entryTimeOut = tk.Entry(mainContainer, width=60, textvariable=self.timeOutEmissorReceptor)
+        #entryTimeOut.pack(side=tk.TOP)
         
         ## botao salvar
         if mode == 0: # emissor
@@ -219,7 +266,7 @@ class Interface:
             self.__configuracoes['canalVazao'] = self.canalVazao.get()
         elif opt == 1:
             self.__configuracoes['emissorTamanhoJanela'] = self.tamanhoJanelaEmissorReceptor.get()
-            self.__configuracoes['emissorTimeOut'] = self.timeOutEmissorReceptor.get()
+            #self.__configuracoes['emissorTimeOut'] = self.timeOutEmissorReceptor.get()
         elif opt == 2:
             self.__configuracoes['receptorTamanhoJanela'] = self.tamanhoJanelaEmissorReceptor.get()
             self.__configuracoes['receptorTimeOut'] = self.timeOutEmissorReceptor.get()
@@ -235,8 +282,13 @@ class Interface:
             Recebe uma string a ser printada no terminal
         '''
         self.textTerminal.config(state=tk.NORMAL)       # permitindo escrita
-        self.textTerminal.delete("1.0", tk.END)         # limpando console
         self.textTerminal.insert(tk.END, text)          # escrevendo
+        self.textTerminal.config(state=tk.DISABLED)     # desabilitando escrita
+
+
+    def limparConsole(self):
+        self.textTerminal.config(state=tk.NORMAL)       # permitindo escrita
+        self.textTerminal.delete("1.0", tk.END)         # limpando console
         self.textTerminal.config(state=tk.DISABLED)     # desabilitando escrita
 
 
@@ -248,6 +300,7 @@ class Interface:
                 else: return x
 
             text += "{0:_<30s} : {1} \n".format(key, check(self.configuracoes[key]))
+        self.limparConsole()
         self.printarConsole(text)
 
 

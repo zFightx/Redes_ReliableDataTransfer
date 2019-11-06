@@ -1,8 +1,8 @@
 import time
 import random
-
 class GoBackNSender:
-    def __init__(self, tempo, janela):
+    def __init__(self, tempo, janela, func):
+        self.func = func
         self.nextSeqNum = 0         # proxima sequencia a ser enviada
         self.base = 0               # posicao atual na janela
         self.maxJanela = janela     # tamanho maximo da janela
@@ -55,7 +55,7 @@ class GoBackNSender:
     
     ## sinaliza o envio de um dado
     def send_package(self, package):
-        print("Sender: sending package ", package)
+        self.func("Sender: sending package {0}\n".format(package))
         self.rcvPackage = []
 
     ## pega a lista de pacotes montados
@@ -66,14 +66,14 @@ class GoBackNSender:
     def receive_package(self, package):
         self.rcvPackage = package
         if package[0] == self.base:
-            print("Sender: received ACK ", package[0])
+            self.func("Sender: received ACK {0}\n".format(package[0]))
             self.base = self.base + 1
         else:
             if package[0] < self.base:
-                print("Sender: received Duplicated Package (ignored)", package)
+                self.func("Sender: received Duplicated Package (ignored) {0}\n".format(package))
             else:
-                print("Sender: received ACK ", package[0])
-                print("Sender: ACKs [", self.base, ", .., ", package[0] ,"] confirmed with based in confirmation ack ", package[0])
+                self.func("Sender: received ACK {0}\n".format(package[0]))
+                self.func("Sender: ACKs [{0}, ... , {1}] confirmed with based in confirmation ack {2}\n".format(self.base, package[0], package[0]))
                 self.base = package[0]
 
     ## verifica se tem recebido um pacote
@@ -92,7 +92,7 @@ class GoBackNSender:
     ## verifica se tempo esgotou
     def isTimeOut(self, timerSystem):
         if self.temporizador < timerSystem and self.isTimerRunning:
-            print("Sender: Time Out")
+            self.func("Sender: Time Out\n")
             return True
         else:
             return False
@@ -102,7 +102,8 @@ class GoBackNSender:
         return self.base < len(self.janela)
 
 class GoBackNReceiver:
-    def __init__(self):
+    def __init__(self, func):
+        self.func = func            # Printar no Console
         self.expectedSeqNum = 0     # inicia esperando uma seq 0
 
         self.sendPackage = []       # lista de pacotes montados
@@ -125,7 +126,7 @@ class GoBackNReceiver:
 
     ## sinaliza o envio de um pacote
     def send_package(self, package):
-        print("Receiver: sending package ", package)
+        self.func("Receiver: sending package {0}\n".format(package))
         self.rcvPackage = []
 
     ## pega a lista de pacotes montados
@@ -147,29 +148,31 @@ class GoBackNReceiver:
     ## verifica se um pacotes eh descatavel
     def verify_discard(self,package):
         if package[0] == self.expectedSeqNum:
-            print("Receiver: received package ", package)
+            self.func("Receiver: received package {0}\n".format(package))
             self.dataResult = self.dataResult + package[1]
             return False
         else:
-            print("Receiver: discard package ", package) 
+            self.func("Receiver: discard package {0}\n".format(package)) 
             return True
 
     ## printa o resultado da comunicacao
     def print_dataResult(self):
-        print("Data Result: ", self.dataResult)
+        self.func("Data Result: {0}\n".format(self.dataResult))
     
     ## pega o resultado da comunicacao
     def get_dataResult(self):
         return self.dataResult
 
 class Canal:
-    def __init__(self):
+    def __init__(self, timeTransfer, probabilidadeError):
         self.lista_pacotes = []     # pacotes circulando na rede
+        self.timeTransfer = timeTransfer
+        self.probabilidadeError = probabilidadeError
 
     ## envia um pacote pelo canal
     def udt_send(self, package, sender, receiver, timeSystem):
         sender.send_package(package)                                    ## sinaliza que ha um pacote enviado
-        self.lista_pacotes.append([package, receiver, timeSystem+2])    ## poe na lista de pacotes na rede
+        self.lista_pacotes.append([package, receiver, timeSystem + self.timeTransfer])    ## poe na lista de pacotes na rede
     
     ## recebe um pacote pelo canal
     def rdt_rcv(self, package, receiver):        
@@ -186,7 +189,7 @@ class Canal:
                 ## probabilidade do pacote ter sido perdido no caminho
                 self.probabilidade_perda = random.randint(0,100)
                 ## se nao se perdeu no caminho, pacote chega ao destino
-                if self.probabilidade_perda < 80:
+                if self.probabilidade_perda < 100 - self.probabilidadeError:
                     self.rdt_rcv(self.lista_pacotes[i][0], self.lista_pacotes[i][1])    # [ package, destino ]
 
                 ## remove pacote da rede
@@ -199,19 +202,24 @@ class Canal:
     def hasEncaminhamento(self):
         return len(self.lista_pacotes) > 0
 
-def main():
-    print("Redes de Computadores - UnB")
-
-    ## PROTOCOLOS ##
-    sender = GoBackNSender(5,4)
-    receiver = GoBackNReceiver()
-    canal = Canal()
-    #####################################
+    # tamanhoJanela, canalDistancia, canalVazao, canalProbErro,
+def StartGoBackN(dados, janela, canalDistancia, canalVazao, probabilidadeError, func, refresh):
+    # func -> printar no Console
+    # refresh -> atualizar interface
+    func("Redes de Computadores - UnB\n")
 
     ## DADOS QUE QUEREMOS ENVIAR ##
-    dados = "Eduardo e Monica e Alexandre estavam numa festa"
-    dados2 = "Eduardo e Monica e Alexandre estavam numa festa"
+    dados2 = dados
     
+    timeout = (canalDistancia*1000/(2.1*10**7) + 8/canalVazao) * 2 + 0.05
+    timeTransfer = canalDistancia*1000/(2.1*10**7)
+
+    ## PROTOCOLOS ##
+    sender = GoBackNSender(timeout, janela, func)
+    receiver = GoBackNReceiver(func)
+    canal = Canal(timeTransfer, probabilidadeError)
+    #####################################
+
     ## dados sao adicionados na janela do sender
     while len(dados) > 0:
         if len(dados) >= 8:
@@ -270,7 +278,7 @@ def main():
                     sndpkt = receiver.get_send()
                     canal.udt_send(sndpkt, receiver,sender, startTime)  # reenvia ack mais alto
         ####################################
-
+        refresh()
         ## ENCAMINHAMENTO DE PACOTES ##
         canal.encaminhando(startTime)
         #####################################
@@ -278,5 +286,3 @@ def main():
     receiver.print_dataResult()
     # receiver.printData()
     ######################################
-
-main()
