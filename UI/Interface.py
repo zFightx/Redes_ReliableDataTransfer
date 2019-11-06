@@ -1,4 +1,5 @@
 import tkinter as tk
+import Protocolos
 
 class Interface:
     def __init__(self, nome, largura, altura):
@@ -48,7 +49,7 @@ class Interface:
         
         # Frames
         # middleContainter Frames
-        self.leftMiddleFrame_middleContainer = tk.Frame(self.middleContainer, width=30, height=60)
+        self.leftMiddleFrame_middleContainer = tk.Frame(self.middleContainer)
         self.leftMiddleFrame_middleContainer.pack(side= tk.LEFT, anchor=tk.CENTER, expand=tk.YES,
             padx= self.button_padx, pady= self.button_pady, ipady=self.buttons_frame_ipady,
             ipadx=self.buttons_frame_ipadx)
@@ -64,8 +65,18 @@ class Interface:
         
         ## middleContainer
         ### leftMiddleFrame_middleContainer - Botões
+        # self.optionMenu = tk.IntVar()
         self.labelBotoes_leftMiddleFrame = tk.Label(self.leftMiddleFrame_middleContainer, text="Configurações:")
-        self.labelBotoes_leftMiddleFrame.pack(expand=tk.YES)
+        self.labelBotoes_leftMiddleFrame.pack(pady=(0,20))
+
+        self.menuButton_leftMiddleFrame = tk.Menubutton(self.leftMiddleFrame_middleContainer, text="Protocolos", relief=tk.RAISED, direction=tk.RIGHT,
+            width=20, height=2, borderwidth=2, activebackground="gray")
+        self.menuButton_leftMiddleFrame.pack(pady=(0,8))
+        self.menuButton_leftMiddleFrame.menu = tk.Menu(self.menuButton_leftMiddleFrame, tearoff=0)
+        self.menuButton_leftMiddleFrame["menu"] = self.menuButton_leftMiddleFrame.menu
+        self.menuButton_leftMiddleFrame.menu.add_command(label="Stop-and-Wait", command= lambda: self.__opcoesProtocolos(0))
+        self.menuButton_leftMiddleFrame.menu.add_command(label="Go-Back-N", command= lambda: self.__opcoesProtocolos(1))
+        self.menuButton_leftMiddleFrame.menu.add_command(label="Selective-Repeat", command= lambda: self.__opcoesProtocolos(2))
 
         self.buttonCanal = tk.Button(self.leftMiddleFrame_middleContainer, text="Canal", width=15, command=self.__opcoesCanal)
         self.buttonCanal.pack(expand=tk.YES, pady=(0,5))
@@ -76,12 +87,18 @@ class Interface:
         self.buttonReceptor = tk.Button(self.leftMiddleFrame_middleContainer, text="Receptor", width=15, command=lambda: self.__opcoesEmissorReceptor(1))
         self.buttonReceptor.pack(expand=tk.YES, pady=(0,5))
 
+        self.buttonReceptor = tk.Button(self.leftMiddleFrame_middleContainer, text="Iniciar simulação", width=20, height=2, activebackground="gray", font=("bold"), command=self.__iniciarSimulacao)
+        self.buttonReceptor.pack(expand=tk.YES, pady=(20,0))
+
         ### rightMiddleFrame_middleContainer - Text saída terminal
+        self.labelBotoes_rightMiddleFrame = tk.Label(self.rightMiddleFrame_middleContainer, text="Console:", font=(14))
+        self.labelBotoes_rightMiddleFrame.pack(pady=(0,2))
+
         self.sb = tk.Scrollbar(self.rightMiddleFrame_middleContainer)
         self.sb.pack(side=tk.RIGHT, fill=tk.Y)
         
         self.textTerminal = tk.Text(self.rightMiddleFrame_middleContainer, borderwidth=2, padx= self.button_padx,
-            relief=tk.GROOVE, width=60, height=30, state=tk.DISABLED,
+            relief=tk.GROOVE, width=80, height=30, state=tk.DISABLED,
             yscrollcommand=self.sb.set)
         
         self.textTerminal.pack(fill=tk.BOTH, expand=tk.YES)
@@ -90,7 +107,20 @@ class Interface:
         ### bottomContainer
         self.labelStatusBar = tk.Label(self.bottomContainer, text="", fg="red")
         self.labelStatusBar.pack(side=tk.LEFT, expand=tk.YES, anchor=tk.W, padx=(20,0))
-        self.printarBarraStatus("Testando print Barra de Status")
+
+
+    def __iniciarSimulacao(self):
+        """ Executa o simulador com as configurações definidas."""
+        pass
+
+
+    def __opcoesProtocolos(self, opt):
+        # 0 - Stop-and-Wait
+        # 1 - Go-Back-N
+        # 2 - Selective Repeat
+        if opt == 0 or opt == 1 or opt == 2: 
+            self.__configuracoes["protocolo"] = opt
+        self.printarConfiguracoesConsole()  
 
 
     def __opcoesCanal(self):
@@ -195,7 +225,7 @@ class Interface:
             self.__configuracoes['receptorTimeOut'] = self.timeOutEmissorReceptor.get()
 
         # mostrando no console
-        self.printarConsole(str(self.configuracoes))
+        self.printarConfiguracoesConsole()
         # depois de salvar fechar a nova janela automaticamente (opcional)
         self.newWindow.destroy()
 
@@ -208,6 +238,18 @@ class Interface:
         self.textTerminal.delete("1.0", tk.END)         # limpando console
         self.textTerminal.insert(tk.END, text)          # escrevendo
         self.textTerminal.config(state=tk.DISABLED)     # desabilitando escrita
+
+
+    def printarConfiguracoesConsole(self):
+        text = ""
+        for key in self.configuracoes:
+            def check(x):
+                if (type(x) is not str): return str(x)
+                else: return x
+
+            text += "{0:_<30s} : {1} \n".format(key, check(self.configuracoes[key]))
+        self.printarConsole(text)
+
 
     def printarBarraStatus(self, text):
         self.labelStatusBar.config(text=text)
