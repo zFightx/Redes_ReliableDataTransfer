@@ -104,7 +104,7 @@ class Interface:
         ## middleContainer
         ### leftMiddleFrame_middleContainer - Botões
         # self.optionMenu = tk.IntVar()
-        self.labelBotoes_leftMiddleFrame = tk.Label(self.leftMiddleFrame_middleContainer, text="Configurações:")
+        self.labelBotoes_leftMiddleFrame = tk.Label(self.leftMiddleFrame_middleContainer, text="Configurações:", font=(13))
         self.labelBotoes_leftMiddleFrame.pack(pady=(0,20))
 
         self.menuButton_leftMiddleFrame = tk.Menubutton(self.leftMiddleFrame_middleContainer, text="Protocolos", relief=tk.RAISED, direction=tk.RIGHT,
@@ -128,13 +128,13 @@ class Interface:
         self.buttonReceptor = tk.Button(self.leftMiddleFrame_middleContainer, text="Iniciar simulação", width=20, height=2, activebackground="gray", font=("bold"), command=self.__iniciarSimulacao)
         self.buttonReceptor.pack(expand=tk.YES, pady=(20,0))
 
-        self.teste = tk.Label(self.leftMiddleFrame_middleContainer, text="Desempenho (segundos):")
-        self.teste.pack(pady=(0,0))
+        self.teste = tk.Label(self.leftMiddleFrame_middleContainer, text="Desempenho (segundos):", font=(13))
+        self.teste.pack(pady=(40,0))
 
         self.teste2 = tk.Label(self.bottomTeste, text="Stop-And-Wait:")
         self.teste2.pack(pady=(0,0), side=tk.LEFT)
 
-        self.teste3 = tk.Label(self.bottomTeste, text="Go-Back-N")
+        self.teste3 = tk.Label(self.bottomTeste, text="Go-Back-N:")
         self.teste3.pack(pady=(0,0), side=tk.RIGHT)
 
         self.teste4 = tk.Text(self.bottomTeste2, borderwidth=2,relief=tk.GROOVE, state=tk.DISABLED, width=5,height=1)
