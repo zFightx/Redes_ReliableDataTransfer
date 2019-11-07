@@ -121,6 +121,11 @@ class GoBackNReceiver:
 
     ## monta um pacote [ ack, checksum ]
     def make_pkt(self):
+        for i in self.rcvPackage:
+            if i[0] == self.expectedSeqNum:
+                self.sendPackage = [self.expectedSeqNum, i[2]]
+                return self.sendPackage
+        
         self.sendPackage = [self.expectedSeqNum, 8]
         return self.sendPackage
 
@@ -203,7 +208,7 @@ class Canal:
         return len(self.lista_pacotes) > 0
 
     # tamanhoJanela, canalDistancia, canalVazao, canalProbErro,
-def StartGoBackN(dados, janela, canalDistancia, canalVazao, probabilidadeError, func, refresh):
+def StartGoBackN(dados, janela, canalDistancia, canalVazao, probabilidadeError, func, printDesempenho, refresh):
     # func -> printar no Console
     # refresh -> atualizar interface
     func("Redes de Computadores - UnB\n")
@@ -229,6 +234,8 @@ def StartGoBackN(dados, janela, canalDistancia, canalVazao, probabilidadeError, 
             sender.add_janela(dados[:len(dados)])
             dados = ""
     #####################################
+
+    desempenho = time.time() # FATOR DESEMPENHO
 
     #### MAIN LOOP ####
     while receiver.get_dataResult() != dados2 or canal.hasEncaminhamento() or sender.has_data() or sender.notFinish():
@@ -278,9 +285,10 @@ def StartGoBackN(dados, janela, canalDistancia, canalVazao, probabilidadeError, 
                     sndpkt = receiver.get_send()
                     canal.udt_send(sndpkt, receiver,sender, startTime)  # reenvia ack mais alto
         ####################################
-        refresh()
         ## ENCAMINHAMENTO DE PACOTES ##
+        printDesempenho(abs(abs(startTime) - abs(desempenho)))
         canal.encaminhando(startTime)
+        refresh()
         #####################################
     
     receiver.print_dataResult()

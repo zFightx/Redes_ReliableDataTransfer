@@ -56,6 +56,14 @@ class Interface:
             padx= self.button_padx, pady= self.button_pady, ipady=self.buttons_frame_ipady,
             ipadx=self.buttons_frame_ipadx)
 
+        self.bottomTeste2 = tk.Frame(self.leftMiddleFrame_middleContainer)
+        self.bottomTeste2.pack(side=tk.BOTTOM, expand=tk.YES, fill=tk.BOTH)
+
+        self.bottomTeste = tk.Frame(self.leftMiddleFrame_middleContainer)
+        self.bottomTeste.pack(side=tk.BOTTOM, expand=tk.YES, fill=tk.BOTH)
+
+        
+
         self.rightMiddleFrame_middleContainer = tk.Frame(self.middleContainer)
         self.rightMiddleFrame_middleContainer.pack(side= tk.RIGHT)
         
@@ -120,6 +128,21 @@ class Interface:
         self.buttonReceptor = tk.Button(self.leftMiddleFrame_middleContainer, text="Iniciar simulação", width=20, height=2, activebackground="gray", font=("bold"), command=self.__iniciarSimulacao)
         self.buttonReceptor.pack(expand=tk.YES, pady=(20,0))
 
+        self.teste = tk.Label(self.leftMiddleFrame_middleContainer, text="Desempenho (segundos):")
+        self.teste.pack(pady=(0,0))
+
+        self.teste2 = tk.Label(self.bottomTeste, text="Stop-And-Wait:")
+        self.teste2.pack(pady=(0,0), side=tk.LEFT)
+
+        self.teste3 = tk.Label(self.bottomTeste, text="Go-Back-N")
+        self.teste3.pack(pady=(0,0), side=tk.RIGHT)
+
+        self.teste4 = tk.Text(self.bottomTeste2, borderwidth=2,relief=tk.GROOVE, state=tk.DISABLED, width=5,height=1)
+        self.teste4.pack(pady=(0,0), side=tk.LEFT)
+
+        self.teste5 = tk.Text(self.bottomTeste2, borderwidth=2,relief=tk.GROOVE, state=tk.DISABLED,width=5,height=1)
+        self.teste5.pack(pady=(0,0), side=tk.RIGHT)
+
         ### rightMiddleFrame_middleContainer - Text saída terminal
         self.labelBotoes_rightMiddleFrame = tk.Label(self.rightMiddleFrame_middleContainer, text="Console:", font=(14))
         self.labelBotoes_rightMiddleFrame.pack(pady=(0,2))
@@ -153,11 +176,11 @@ class Interface:
             if key == 'protocolo':
                 if self.__configuracoes[key] == 0:      # StopandWait
                     self.printarBarraStatus("Executando protocolo Stop-and-Wait!")
-                    StopAndWait.StartStopAndWait(self.inputDados, canalDistancia, canalVazao, canalProbErro, self.printarConsole, self.root.update)
+                    StopAndWait.StartStopAndWait(self.inputDados, canalDistancia, canalVazao, canalProbErro, self.printarConsole,self.printarDesempenho1, self.root.update)
                     break
                 elif self.__configuracoes[key] == 1:      # GoBackN
                     self.printarBarraStatus("Executando protocolo Go-Back-N!")
-                    GoBackN.StartGoBackN(self.inputDados, tamanhoJanela, canalDistancia, canalVazao, canalProbErro, self.printarConsole, self.root.update)
+                    GoBackN.StartGoBackN(self.inputDados, tamanhoJanela, canalDistancia, canalVazao, canalProbErro, self.printarConsole, self.printarDesempenho2, self.root.update)
                     break
                     
 
@@ -307,6 +330,35 @@ class Interface:
     def printarBarraStatus(self, text):
         self.labelStatusBar.config(text=text)
 
+    def printarDesempenho1(self, text):
+        '''
+            Recebe uma string a ser printada no terminal
+        '''
+        self.limparDesempenho1()
+        self.teste4.config(state=tk.NORMAL)       # permitindo escrita
+        self.teste4.insert(tk.END, text)          # escrevendo
+        self.teste4.config(state=tk.DISABLED)     # desabilitando escrita
+
+
+    def limparDesempenho1(self):
+        self.teste4.config(state=tk.NORMAL)       # permitindo escrita
+        self.teste4.delete("1.0", tk.END)         # limpando console
+        self.teste4.config(state=tk.DISABLED)     # desabilitando escrita
+
+    def printarDesempenho2(self, text):
+        '''
+            Recebe uma string a ser printada no terminal
+        '''
+        self.limparDesempenho2()
+        self.teste5.config(state=tk.NORMAL)       # permitindo escrita
+        self.teste5.insert(tk.END, text)          # escrevendo
+        self.teste5.config(state=tk.DISABLED)     # desabilitando escrita
+
+
+    def limparDesempenho2(self):
+        self.teste5.config(state=tk.NORMAL)       # permitindo escrita
+        self.teste5.delete("1.0", tk.END)         # limpando console
+        self.teste5.config(state=tk.DISABLED)     # desabilitando escrita
 
     @property
     def configuracoes(self):

@@ -169,7 +169,7 @@ class Canal:
     def hasEncaminhamento(self):
         return len(self.lista_pacotes) > 0
 
-def StartStopAndWait(dados, canalDistancia, canalVazao, probabilidadeError, func, refresh):
+def StartStopAndWait(dados, canalDistancia, canalVazao, probabilidadeError, func, printDesempenho, refresh):
     # func -> printar no Console
     # refresh -> atualizar interface
     func("Redes de Computadores - UnB\n")
@@ -193,6 +193,8 @@ def StartStopAndWait(dados, canalDistancia, canalVazao, probabilidadeError, func
     receiver = StopAndWaitReceiver(func)
     canal = Canal(timeTransfer, probabilidadeError)
     #####################################
+
+    desempenho = time.time() # FATOR DESEMPENHO
 
     #### MAIN LOOP ####
     while len(lista_dados) > 0 or not sender.isWaitingCall() or canal.hasEncaminhamento():
@@ -233,6 +235,7 @@ def StartStopAndWait(dados, canalDistancia, canalVazao, probabilidadeError, func
                     canal.udt_send(package, receiver, sender, startTime)
 
         canal.encaminhando(startTime)
+        printDesempenho(abs(abs(startTime) - abs(desempenho)))
         refresh()
         ####### PROTOCOL LOGIC ############
 
